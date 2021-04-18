@@ -1,0 +1,162 @@
+---
+title: 'Brandi Christiano - Homework #3 Notebook'
+author: "BMC"
+date: "4/16/2021"
+output: html_document
+---
+
+```{r, warning=FALSE, message=FALSE}
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library (ggpmisc)
+```
+
+```{r setup, include=FALSE}
+df <- read.csv("KamilarAndCooperData.csv")
+```
+
+```{r}
+head(df)
+```
+
+# Challenge 1
+
+## Everything for the Normal Model
+```{r}
+# Normal Model
+model1 <- lm(WeaningAge_d~Brain_Size_Species_Mean, data=df)
+model1
+
+# Make the output of Model 1 an Equation to include on the plot 
+eq <- substitute(italic(y) == a + b *"x" , 
+         list(a = format(unname(coef(model1)[1]), digits = 2),
+              b = format(unname(coef(model1)[2]), digits = 2)))
+eq <- c("y == 132+2.6(x)")
+eq
+```
+
+```{r, warning=FALSE}
+
+# x is the control variable
+plot1 <- ggplot(data = df, aes(x =(Brain_Size_Species_Mean), y =(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
+plot1
+plot1 <- plot1+ geom_text(x = 400, y = 1500, label =eq, parse = TRUE)
+
+plot1
+``` 
+```{r}
+# Model 1 Betas and CIs
+model.summary <- tidy(model1)
+
+beta0 <- model.summary %>%
+  filter(term == "(Intercept)") %>%
+  pull(estimate)
+
+beta1 <- model.summary %>%
+  filter(term == "Brain_Size_Species_Mean") %>%
+  pull(estimate)
+
+beta0 # 132.46
+beta1 # 2.64
+
+
+
+alpha <- 0.25
+ci <- predict(model1,
+  newdata = data.frame(Brain_Size_Species_Mean = df$Brain_Size_Species_Mean),
+  interval = "confidence", level = 1 - alpha
+)
+ci <- data.frame(ci)
+```
+```{r}
+# Model 1
+ci <- cbind(df$Brain_Size_Species_Mean, ci)
+names(ci) <- c("Brain_Size_Species_Mean", "c.fit", "c.lwr", "c.upr")
+g <- ggplot(data = df, aes(x = Brain_Size_Species_Mean, y = WeaningAge_d))
+g <- g + geom_point(alpha = 0.1)
+g <- g + geom_line(
+  data = ci, aes(x = Brain_Size_Species_Mean, y = c.fit),
+  color = "black"
+)
+g <- g + geom_line(
+  data = ci, aes(x =  Brain_Size_Species_Mean, y = c.lwr),
+  color = "blue"
+)
+g <- g + geom_line(
+  data = ci, aes(x =  Brain_Size_Species_Mean, y = c.upr),
+  color = "blue"
+)
+g
+
+```
+
+
+## Log Model
+```{r, warning=FALSE}
+# Log Model
+model2 <- lm(log(WeaningAge_d)~log(Brain_Size_Species_Mean), data=df)
+model2
+
+eq2 <- substitute(italic(y) == a + b *"x" , 
+         list(a = format(unname(coef(model2)[1]), digits = 2),
+              b = format(unname(coef(model2)[2]), digits = 2)))
+eq2 <- c("y == 3.4+0.56(x)")
+eq2
+```
+```{r, warning=FALSE}
+# Log Model Plot 
+plot2 <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
+plot2 <- plot2+ geom_text(x = 2, y = 6.5, label =eq2, parse = TRUE)
+
+plot2
+```
+```{r}
+# Log Model
+model.summary2 <- tidy(model2)
+beta0 <- model.summary2 %>%
+  filter(term == "(Intercept)") %>%
+  pull(estimate)
+beta1 <- model.summary2 %>%
+  filter(term == "log(Brain_Size_Species_Mean)") %>%
+  pull(estimate)
+
+beta0
+
+beta1
+
+alpha <- 0.1 # 90% CI?
+ci2 <- predict(model2,
+  newdata = data.frame(Brain_Size_Species_Mean = log(df$Brain_Size_Species_Mean)),
+  interval = "confidence", level = 1 - alpha)
+ci2 <- data.frame(ci2)
+```
+```{r}
+# Log Model
+df <- augment(model2, se_fit = TRUE)
+g2 <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d)))
+g2
+g2 <- g2 + geom_point(alpha = 0.1)
+g2 <- g2 + geom_line(
+  data = df, aes(x = log(Brain_Size_Species_Mean), y = .fitted),
+  color = "black", lwd = 1
+)
+g2 <- g2 + geom_line(
+  data = df, aes(x = log(Brain_Size_Species_Mean), y = c.lwr),
+  color = "blue"
+)
+g2 <- g2 + geom_line(
+  data = df, aes(x = log(Brain_Size_Species_Mean), y = c.upr),
+  color = "blue"
+)
+g2 <- g2 + geom_line(
+  data = df, aes(x = log(Brain_Size_Species_Mean), y = p.lwr),
+  color = "red"
+)
+g2 <- g2 + geom_line(
+  data = df, aes(x = log(Brain_Size_Species_Mean), y = p.upr),
+  color = "red"
+)
+g2
+```
+
