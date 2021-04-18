@@ -10,6 +10,8 @@ library(ggplot2)
 library(tidyverse)
 library(tidyr)
 library (ggpmisc)
+library(dplyr)
+library(broom)
 ```
 
 ```{r setup, include=FALSE}
@@ -22,31 +24,40 @@ head(df)
 
 # Challenge 1
 
-## Everything for the Normal Model
+## Normal Model
+
+### Fit the regression model 
 ```{r}
 # Normal Model
 model1 <- lm(WeaningAge_d~Brain_Size_Species_Mean, data=df)
 model1
-
-# Make the output of Model 1 an Equation to include on the plot 
-eq <- substitute(italic(y) == a + b *"x" , 
-         list(a = format(unname(coef(model1)[1]), digits = 2),
-              b = format(unname(coef(model1)[2]), digits = 2)))
-eq <- c("y == 132+2.6(x)")
-eq
 ```
-
+###  Using {ggplot2}, produce a scatterplot with the fitted line superimposed upon the data
 ```{r, warning=FALSE}
 
 # x is the control variable
 plot1 <- ggplot(data = df, aes(x =(Brain_Size_Species_Mean), y =(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
 plot1
+```
+### Append the the fitted model equation to your plot.
+```{r, warning=FALSE}
+# Make the output of Model 1 an Equation to include on the plot 
+
+eq <- substitute(italic(y) == a + b *"x" , 
+         list(a = format(unname(coef(model1)[1]), digits = 2),
+              b = format(unname(coef(model1)[2]), digits = 2)))
+eq <- c("y == 132+2.6(x)")
+eq
+
 plot1 <- plot1+ geom_text(x = 400, y = 1500, label =eq, parse = TRUE)
 
 plot1
-``` 
+```
+
+### Identify and interpret the point estimate of the slope (β1)
+ 
 ```{r}
-# Model 1 Betas and CIs
+# Model 1 Betas 
 model.summary <- tidy(model1)
 
 beta0 <- model.summary %>%
@@ -60,103 +71,224 @@ beta1 <- model.summary %>%
 beta0 # 132.46
 beta1 # 2.64
 
+# INTERPERTATION: Beta 1 is the true slope, therefore every time the  x variable (Mean of Brain Size) increases by 1, the y variable (Weaning Age in Days), will increase by Beta 1, which is 2.64. 
 
+# Test null hypothesis that beta1 = 0
+beta1==0 # False
 
+# Test alternative hypothesis that beta1 does not = 0
+beta1!=0 # True
+
+```
+### Find a 90% CI for the slope (β1) parameter
+```{r}
+# Model 1 CIs
 alpha <- 0.25
 ci <- predict(model1,
-  newdata = data.frame(Brain_Size_Species_Mean = df$Brain_Size_Species_Mean),
+  newdata = data.frame(Brain_Size_Species_Mean = 2.64),
   interval = "confidence", level = 1 - alpha
-)
-ci <- data.frame(ci)
+) # for a single value
+ci
+
+# The confidence intervals range from 117.6 - 161.2
 ```
+### Using your model, add lines for the 90% confidence
 ```{r}
 # Model 1
+
+df2 <- augment(model1, se_fit = TRUE)
+head(df2)
+df2
+df$Brain_Size_Species_Mean
+
+d <- mutate(df, centered_Age = WeaningAge_d - mean(WeaningAge_d))
+d <- mutate(df, centered_Brain = Brain_Size_Species_Mean - mean(Brain_Size_Species_Mean))
+
+d$Brain_Size_Species_Mean
+
+newdata <-  data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean)
+newdata
+
+ci <- predict(model1,newdata,
+              interval = "confidence", level = 1 - alpha) 
+
+ci
+ci <- data.frame(ci)
+ci
 ci <- cbind(df$Brain_Size_Species_Mean, ci)
-names(ci) <- c("Brain_Size_Species_Mean", "c.fit", "c.lwr", "c.upr")
+ci
+names(ci) <- c("Brain.Size.Species.Mean", "c.fit", "c.lwr", "c.upr")
+ci
 g <- ggplot(data = df, aes(x = Brain_Size_Species_Mean, y = WeaningAge_d))
+g
 g <- g + geom_point(alpha = 0.1)
-g <- g + geom_line(
-  data = ci, aes(x = Brain_Size_Species_Mean, y = c.fit),
+g
+g2 <- g + geom_line(
+  data = ci, aes(x =ci$Brain.Size.Species.Mean, y = c.fit),
   color = "black"
 )
-g <- g + geom_line(
-  data = ci, aes(x =  Brain_Size_Species_Mean, y = c.lwr),
+g2
+g3 <- g2 + geom_line(
+  data = ci, aes(x =ci$Brain.Size.Species.Mean , y = c.lwr),
   color = "blue"
 )
-g <- g + geom_line(
-  data = ci, aes(x =  Brain_Size_Species_Mean, y = c.upr),
+g3
+g4 <- g3 + geom_line(
+  data = ci, aes(x = ci$Brain.Size.Species.Mean, y = c.upr),
   color = "blue"
 )
-g
+g4
 
 ```
+### Using your model, add lines for prediction interval bands on the plot
+```{r}
+pi <- predict(model1, newdata ,
+  interval = "prediction", level = 0.90
+) # for a vector of values
+pi <- data.frame(pi)
+pi
+pi <- cbind(df$Brain_Size_Species_Mean, pi)
+names(pi) <- c("Brain.Size.Species.Mean", "p.fit", "p.lwr", "p.upr")
+pi
+g5 <- g4 + geom_line(data = pi, aes(x = Brain.Size.Species.Mean, y = p.lwr), color = "red")
+g5
+g6 <- g5 + geom_line(data = pi, aes(x = Brain.Size.Species.Mean, y = p.upr), color = "red")
+g6 
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## Log Model
+
+### Fit the regression model 
 ```{r, warning=FALSE}
 # Log Model
 model2 <- lm(log(WeaningAge_d)~log(Brain_Size_Species_Mean), data=df)
 model2
 
+```
+###  Using {ggplot2}, produce a scatterplot with the fitted line superimposed upon the data
+```{r, warning=FALSE}
+# Log Model Plot 
+plot2 <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
+```
+### Append the the fitted model equation to your plot.
+```{r, warning=FALSE}
 eq2 <- substitute(italic(y) == a + b *"x" , 
          list(a = format(unname(coef(model2)[1]), digits = 2),
               b = format(unname(coef(model2)[2]), digits = 2)))
 eq2 <- c("y == 3.4+0.56(x)")
 eq2
-```
-```{r, warning=FALSE}
-# Log Model Plot 
-plot2 <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
+
 plot2 <- plot2+ geom_text(x = 2, y = 6.5, label =eq2, parse = TRUE)
 
 plot2
 ```
+### Identify and interpret the point estimate of the slope (β1)
 ```{r}
 # Log Model
 model.summary2 <- tidy(model2)
+
 beta0 <- model.summary2 %>%
   filter(term == "(Intercept)") %>%
   pull(estimate)
+
 beta1 <- model.summary2 %>%
   filter(term == "log(Brain_Size_Species_Mean)") %>%
   pull(estimate)
 
-beta0
+beta0 # 3.37
+beta1 # 0.57
 
-beta1
+# INTERPERTATION: Beta 1 is the true slope, therefore every time the  x variable (the log of the mean of brain size) increases by 1, the y variable (the log of weaning age in days), will increase by Beta 1, which is 0.57. 
 
-alpha <- 0.1 # 90% CI?
+# Test null hypothesis that beta1 = 0
+beta1==0 # False
+
+# Test alternative hypothesis that beta1 does not = 0
+beta1!=0 # True
+```
+###  Find a 90% CI for the slope (β1) parameter.
+```{r}
+# Model 2 CIs
+alpha <- 0.25
 ci2 <- predict(model2,
-  newdata = data.frame(Brain_Size_Species_Mean = log(df$Brain_Size_Species_Mean)),
-  interval = "confidence", level = 1 - alpha)
-ci2 <- data.frame(ci2)
+  newdata = data.frame(Brain_Size_Species_Mean = 0.57),
+  interval = "confidence", level = 1 - alpha
+) # for a single value
+ci2
+
+# The confidence intervals range from 2.9 - 3.2
 ```
 ```{r}
 # Log Model
-df <- augment(model2, se_fit = TRUE)
-g2 <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d)))
-g2
-g2 <- g2 + geom_point(alpha = 0.1)
-g2 <- g2 + geom_line(
-  data = df, aes(x = log(Brain_Size_Species_Mean), y = .fitted),
-  color = "black", lwd = 1
+
+df3 <- augment(model2, se_fit = TRUE)
+head(df3)
+df3
+df$Brain_Size_Species_Mean
+
+d <- mutate(df, centered_Age = log(WeaningAge_d) - mean(log(WeaningAge_d))
+d <- mutate(df, centered_Brain = log(Brain_Size_Species_Mean) - mean(log(Brain_Size_Species_Mean)))
+d
+
+d$centered_Brain
+
+newdata <-  data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean)
+newdata
+
+ci <- predict(model1,newdata,
+              interval = "confidence", level = 1 - alpha) 
+
+ci
+ci <- data.frame(ci)
+ci
+ci <- cbind(df$Brain_Size_Species_Mean, ci)
+ci
+names(ci) <- c("Brain.Size.Species.Mean", "c.fit", "c.lwr", "c.upr")
+ci
+g <- ggplot(data = df, aes(x = Brain_Size_Species_Mean, y = WeaningAge_d))
+g
+g <- g + geom_point(alpha = 0.1)
+g
+g2 <- g + geom_line(
+  data = ci, aes(x =ci$Brain.Size.Species.Mean, y = c.fit),
+  color = "black"
 )
-g2 <- g2 + geom_line(
-  data = df, aes(x = log(Brain_Size_Species_Mean), y = c.lwr),
+g2
+g3 <- g2 + geom_line(
+  data = ci, aes(x =ci$Brain.Size.Species.Mean , y = c.lwr),
   color = "blue"
 )
-g2 <- g2 + geom_line(
-  data = df, aes(x = log(Brain_Size_Species_Mean), y = c.upr),
+g3
+g4 <- g3 + geom_line(
+  data = ci, aes(x = ci$Brain.Size.Species.Mean, y = c.upr),
   color = "blue"
 )
-g2 <- g2 + geom_line(
-  data = df, aes(x = log(Brain_Size_Species_Mean), y = p.lwr),
-  color = "red"
-)
-g2 <- g2 + geom_line(
-  data = df, aes(x = log(Brain_Size_Species_Mean), y = p.upr),
-  color = "red"
-)
-g2
+g4
 ```
 
