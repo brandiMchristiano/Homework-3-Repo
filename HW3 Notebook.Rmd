@@ -1,7 +1,7 @@
 ---
 title: 'Brandi Christiano - Homework #3 Notebook'
 author: "BMC"
-date: "4/16/2021"
+date: "4/21/2021"
 output: html_document
 ---
 
@@ -22,9 +22,9 @@ df <- read.csv("KamilarAndCooperData.csv")
 head(df)
 ```
 
-# Challenge 1
+# **Challenge 1**
 
-## Normal Model
+## Normal Model (Model1)
 
 ### Fit the regression model 
 ```{r}
@@ -39,6 +39,8 @@ model1
 plot1 <- ggplot(data = df, aes(x =(Brain_Size_Species_Mean), y =(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
 plot1
 ```
+
+
 ### Append the the fitted model equation to your plot.
 ```{r, warning=FALSE}
 # Make the output of Model 1 an Equation to include on the plot 
@@ -93,7 +95,7 @@ ci
 # The confidence intervals range from 117.6 - 161.2
 ```
 ### Using your model, add lines for the 90% confidence
-```{r}
+```{r, warning=FALSE}
 # Model 1
 
 df2 <- augment(model1, se_fit = TRUE)
@@ -140,8 +142,11 @@ g4 <- g3 + geom_line(
 g4
 
 ```
+
+
+
 ### Using your model, add lines for prediction interval bands on the plot
-```{r}
+```{r, warning=FALSE}
 pi <- predict(model1, newdata ,
   interval = "prediction", level = 0.90
 ) # for a vector of values
@@ -157,6 +162,38 @@ g6
 
 
 
+```
+
+
+
+### Add a legend to differentiate between the lines
+```{r}
+# Normal Model
+```
+
+### Produce a point estimate for the weaning age of a species whose brain weight is 750 mg. 
+
+```{r}
+# Normal Model
+beta0 <- model.summary %>%
+  filter(term == "(Intercept)") %>%
+  pull(estimate)
+beta1 <- model.summary %>%
+  filter(term == "Brain_Size_Species_Mean") %>%
+  pull(estimate)
+(h.hat <- beta1 * 750 + beta0)
+
+# 2110.3
+```
+### Produce the  associated 90% prediction interval for the weaning age of a species whose brain weight is 750 mg.
+```{r}
+# Normal Model
+pi <- predict(model1,
+  newdata = data.frame(Brain_Size_Species_Mean = 750),
+  interval = "prediction", level = 0.90
+) # for a single value
+pi
+# 1783.8 - 2436.8
 ```
 
 
@@ -180,9 +217,7 @@ g6
 
 
 
-
-
-## Log Model
+## Log Model (Model2)
 
 ### Fit the regression model 
 ```{r, warning=FALSE}
@@ -244,7 +279,7 @@ ci2
 
 # The confidence intervals range from 2.9 - 3.2
 ```
-```{r}
+```{r, warning=FALSE}
 # Log Model
 
 df3 <- augment(model2, se_fit = TRUE)
@@ -252,43 +287,101 @@ head(df3)
 df3
 df$Brain_Size_Species_Mean
 
-d <- mutate(df, centered_Age = log(WeaningAge_d) - mean(log(WeaningAge_d))
+d <- mutate(df, centered_Age = log(WeaningAge_d) - mean(log(WeaningAge_d)))
 d <- mutate(df, centered_Brain = log(Brain_Size_Species_Mean) - mean(log(Brain_Size_Species_Mean)))
 d
 
-d$centered_Brain
 
 newdata <-  data.frame(Brain_Size_Species_Mean = d$Brain_Size_Species_Mean)
 newdata
 
-ci <- predict(model1,newdata,
+ci <- predict(model2,newdata,
               interval = "confidence", level = 1 - alpha) 
 
 ci
 ci <- data.frame(ci)
 ci
-ci <- cbind(df$Brain_Size_Species_Mean, ci)
+
+
+BrainLog <- log(df$Brain_Size_Species_Mean)
+
+ci <- cbind(BrainLog, ci)
 ci
-names(ci) <- c("Brain.Size.Species.Mean", "c.fit", "c.lwr", "c.upr")
+names(ci) <- c("Log.Brain.Size.Species.Mean", "c.fit", "c.lwr", "c.upr")
 ci
-g <- ggplot(data = df, aes(x = Brain_Size_Species_Mean, y = WeaningAge_d))
+g <- ggplot(data = df, aes(x = log(Brain_Size_Species_Mean), y = log(WeaningAge_d)))
 g
 g <- g + geom_point(alpha = 0.1)
 g
 g2 <- g + geom_line(
-  data = ci, aes(x =ci$Brain.Size.Species.Mean, y = c.fit),
+  data = ci, aes(x =ci$Log.Brain.Size.Species.Mean, y = c.fit),
   color = "black"
 )
 g2
 g3 <- g2 + geom_line(
-  data = ci, aes(x =ci$Brain.Size.Species.Mean , y = c.lwr),
+  data = ci, 
+  aes(x =ci$Log.Brain.Size.Species.Mean, y = c.lwr),
   color = "blue"
 )
 g3
 g4 <- g3 + geom_line(
-  data = ci, aes(x = ci$Brain.Size.Species.Mean, y = c.upr),
+  data = ci, aes(x = ci$Log.Brain.Size.Species.Mean, y = c.upr),
   color = "blue"
 )
 g4
 ```
+### Using your model, add lines for prediction interval bands on the plot
+
+```{r, warning=FALSE}
+pi <- predict(model2, newdata ,
+  interval = "prediction", level = 0.90
+) # for a vector of values
+pi <- data.frame(pi)
+pi
+pi <- cbind(BrainLog, pi)
+names(pi) <- c("Log.Brain.Size.Species.Mean", "p.fit", "p.lwr", "p.upr")
+pi
+g5 <- g4 + geom_line(data = pi, aes(x = Log.Brain.Size.Species.Mean, y = p.lwr), color = "red")
+g5
+g6 <- g5 + geom_line(data = pi, aes(x = Log.Brain.Size.Species.Mean, y = p.upr), color = "red")
+g6 
+
+```
+
+
+
+### Produce a point estimate for the weaning age of a species whose brain weight is 750 gm.
+```{r}
+# Log Model
+log(750) # = 6.62
+beta0 <- model.summary2 %>%
+  filter(term == "(Intercept)") %>%
+  pull(estimate)
+beta0
+beta1 <- model.summary2 %>%
+  filter(term == "log(Brain_Size_Species_Mean)") %>%
+  pull(estimate)
+beta1
+(h.hat <- beta1 * 6.62 + beta0)
+# 7.2
+```
+
+### Produce the  associated 90% prediction interval for the weaning age of a species whose brain weight is 750 gm.
+```{r}
+#Log Model
+
+pi2 <- predict(model2,
+  newdata = data.frame(Brain_Size_Species_Mean = 6.62),
+  interval = "prediction", level = 0.90
+) # for a single value
+pi2
+# 3.8 - 5.1
+```
+
+###  Q - Do you trust the model to predict observations accurately for this value of the explanatory variable? Why or why not?
+### A -  No, I think the variables are too skewed for the normal model to predict an accurate observation. I would trust the log transformations more. 
+
+### Q - Looking at your two models (i.e., untransformed versus log-log transformed), which do you think is better? Why?
+### A -  Because the variables in the untransformed model are highly skewed, I think the log-transformed model would be better. The log-transformation creates a  more normalized data set and results in a more linear relationship. 
+
 
