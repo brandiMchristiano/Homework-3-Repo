@@ -385,3 +385,7 @@ pi2
 ### A -  Because the variables in the untransformed model are highly skewed, I think the log-transformed model would be better. The log-transformation creates a  more normalized data set and results in a more linear relationship. 
 
 
+
+
+
+# **Challenge 2**
