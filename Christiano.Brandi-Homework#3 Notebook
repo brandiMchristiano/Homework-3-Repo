@@ -1,19 +1,43 @@
 ---
-title: "Brandi Christiano - Homework#3 Notebook"
-date: "April 21, 2021"
-output: html_notebook
+title: "Christiano.Brandi - Homework#3 Notebook"
+author: "BMC"
+date: "4/21/2021"
+output: html_document
 ---
 
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
 ```{r}
-plot(cars)
+library(ggplot2)
+library(tidyverse)
+library(tidyr)
+library (ggpmisc)
+library(dplyr)
+library(broom)
+library(infer)
+library(mosaic)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+```{r}
+df <- read.csv("KamilarAndCooperData.csv")
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+```{r}
+head(df)
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+# **Challenge 1**
+
+## Normal Model (Model1)
+
+### Fit the regression model 
+```{r}
+# Normal Model
+model1 <- lm(WeaningAge_d~Brain_Size_Species_Mean, data=df)
+model1
+```
+###  Using {ggplot2}, produce a scatterplot with the fitted line superimposed upon the data
+```{r, warning=FALSE}
+
+# x is the control variable
+plot1 <- ggplot(data = df, aes(x =(Brain_Size_Species_Mean), y =(WeaningAge_d))) + geom_point() + geom_smooth(method = "lm", formula = y ~ x) 
+plot1
+```
